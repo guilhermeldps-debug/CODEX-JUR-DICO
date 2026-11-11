@@ -221,7 +221,9 @@ function vArea(a) {
       '<p class="muted">' + esc(x.desc) + '</p>' +
       (x.est ? '<details class="est"><summary>Estrutura por artigos</summary><ol>' + x.est.map(e => '<li><span>' + esc(e[0]) + '</span><span class="mono">' + esc(e[1]) + '</span></li>').join('') + '</ol></details>' : '') +
       '<div class="acts">' + stBtn(dkey(x)) + (x.url ? '<a class="btn sm ghost" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + lab + '</a>' : '') +
-      '<button class="btn sm ghost ai-only" data-act="ai-dip" data-a="' + a.id + '" data-i="' + di + '">Explicar com IA</button></div><div class="ai-slot" id="ai-d-' + di + '"></div></div>';
+      '<button class="btn sm ghost ai-only" data-act="ai-dip" data-a="' + a.id + '" data-i="' + di + '">Explicar com IA</button>' +
+      clLink('Explique este diploma em linguagem simples: para que serve, como se organiza, quais artigos mais caem na faculdade e na OAB, com um exemplo prático hipotético. Termine com a linha "Fonte:" trazendo lei, artigo e link.', ctxDipCl(a, x)) +
+      '</div><div class="ai-slot" id="ai-d-' + di + '"></div></div>';
   }).join('');
   const cons = edges.map(e => {
     const o = A[e.a === a.id ? e.b : e.a];
@@ -229,9 +231,10 @@ function vArea(a) {
   }).join('');
   return '<header class="ahead" style="--c:' + cvar(a.id) + '"><a class="back" href="#areas">‹ Todas as áreas</a>' +
     '<div class="atitle"><span class="tab">' + a.sig + '</span><div><h1>' + esc(a.nome) + '</h1><p class="muted">' + RAMOS[a.ramo].nome + ' · ' + a.oab + ' questões na 1ª fase da OAB' + (OAB2.indexOf(a.id) >= 0 ? ' · opção na 2ª fase' : '') + '</p></div></div>' +
-    (a.nota ? '<p class="note">' + esc(a.nota) + '</p>' : '') + '</header>' +
+    (a.nota ? '<p class="note">' + esc(a.nota) + '</p>' : '') + clAreaBox(a) + '</header>' +
     '<section class="sec"><h2>Na faculdade</h2><div class="tags">' + a.fac.map(f => '<span class="tag">' + esc(f) + '</span>').join('') + '</div>' +
     '<h3>Temas que mais pesam</h3><div class="tags">' + a.temas.map(t => '<button class="tag c" data-act="ai-tema" data-a="' + a.id + '" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
+    '<p class="muted site-only" style="font-size:.84rem">Toque em um tema para perguntar ao Claude.</p>' +
     '<div class="ai-only" style="display:flex;flex-direction:column;gap:8px"><p class="muted" style="font-size:.84rem">Toque em um tema para a IA explicar, ou peça um artigo ou instituto.</p>' +
     expForm('ai-q-area', 'Explicar com IA um artigo ou instituto desta área', a.id, null) + '<div id="ai-area-out"></div></div></section>' +
     '<section class="sec"><h2>Códigos e leis desta área</h2>' + (a.semLei ? '<p class="note">' + esc(a.semLei) + '</p>' : '') +
@@ -273,7 +276,9 @@ function graphPanel() {
     list.map(x => {
       const o = A[x.e.a === a.id ? x.e.b : x.e.a];
       return '<button class="con' + (x.i === ui.edge ? ' on' : '') + '" data-act="edge" data-i="' + x.i + '" style="--c:' + cvar(o.id) + '"><b><i></i>' + esc(o.nome) + '</b><span>' + esc(x.e.t) + '</span><span class="mono">' + esc(x.e.n) + '</span></button>';
-    }).join('') + '</div><div class="ctrl"><a class="btn ghost" href="#area-' + a.id + '">Abrir ' + esc(a.nome) + '</a></div></div>';
+    }).join('') + '</div><div class="ctrl"><a class="btn ghost" href="#area-' + a.id + '">Abrir ' + esc(a.nome) + '</a>' +
+    (ui.edge >= 0 ? clLink('Explique a relação entre ' + A[EDGES[ui.edge].a].nome + ' e ' + A[EDGES[ui.edge].b].nome + ' neste ponto: o que um empresta ao outro, um exemplo hipotético e o erro mais comum em prova. Termine com "Fonte:".',
+      'Ponte: ' + EDGES[ui.edge].t + '\nNormas-ponte: ' + EDGES[ui.edge].n, 'Perguntar ao Claude sobre esta conexão') : '<span class="muted site-only" style="font-size:.84rem">Selecione uma conexão para perguntar ao Claude sobre ela.</span>') + '</div></div>';
 }
 function vConexoes() {
   return '<header class="vh"><h1>Mapa de conexões</h1><p>A Constituição fica no centro porque alimenta todas as áreas. Toque em uma sigla para ver com quem ela conversa e por qual artigo.</p></header>' +
@@ -319,7 +324,8 @@ function fcHtml() {
     '<div class="ctrl">' + (ui.fcFlip
       ? '<button class="btn ghost" data-act="fc-mark" data-r="0">Errei</button><button class="btn" data-act="fc-mark" data-r="1">Acertei</button>'
       : '<button class="btn ghost" data-act="fc-next">Pular</button>') +
-    '<button class="say" data-act="say" data-say="' + esc(c.q + (ui.fcFlip ? ' Resposta: ' + c.r : '')) + '">Ouvir</button></div>' +
+    '<button class="say" data-act="say" data-say="' + esc(c.q + (ui.fcFlip ? ' Resposta: ' + c.r : '')) + '">Ouvir</button>' +
+    (ui.fcFlip ? clLink('Explique melhor esta resposta, com um exemplo prático e o que costuma confundir em prova.', 'Área: ' + A[c.a].nome + '\nPergunta: ' + c.q + '\nResposta: ' + c.r + '\nFonte: ' + c.f) : '') + '</div>' +
     '<p class="muted" style="font-size:.86rem">' + (tot ? 'Neste baralho você acertou ' + ok + ' de ' + tot + ' respostas.' : 'Marque Acertei ou Errei para acompanhar seu desempenho.') + '</p>';
 }
 function tVerbais() {
@@ -418,6 +424,7 @@ function pecaHtml(P, x, i) {
       '<div><h3>Pedidos</h3><ul class="pc-ped">' + x.ped.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul><p class="note" style="margin-top:10px">' + esc(x.d) + '</p></div></div>' +
       '<div class="acts"><button class="say" data-act="say" data-say="' + esc(x.n + '. Quando cabe: ' + x.q + ' Prazo: ' + x.p + '. Atenção: ' + x.d) + '">Ouvir</button>' +
       '<button class="btn sm ghost" data-act="pc-save" data-i="' + i + '">Guardar no repertório</button>' +
+      clLink('Explique esta peça da 2ª fase da OAB: para que serve, como reconhecer no enunciado da FGV, como diferenciá-la da peça com que mais se confunde, e um exemplo hipotético. Termine com "Fonte:".', pecaTxt(P, x)) +
       '<button class="btn sm ghost ai-only" data-act="pc-exp" data-i="' + i + '">Explicar com IA</button>' +
       '<button class="btn sm rubi ai-only" data-act="pc-caso" data-i="' + i + '">Gerar caso para treinar</button></div>' +
       '<div class="pc-ai" id="pc-ai-' + i + '"></div></div>' : '') + '</article>';
@@ -468,6 +475,8 @@ function repItem(it, ex) {
     (ex ? '<small class="muted">Some quando você guardar a primeira anotação.</small>' :
       '<div class="acts">' + (long ? '<button class="btn sm ghost" data-act="more">Ver tudo</button>' : '') +
       '<button class="btn sm ghost" data-act="rep-edit" data-id="' + esc(it.id) + '">Editar</button><button class="btn sm danger" data-act="del" data-kind="rep" data-id="' + esc(it.id) + '">Apagar</button>' +
+      clLink('Esta é uma anotação minha de estudo. Revise o conteúdo: confirme o que está certo, corrija o que estiver errado, complete o que faltou e explique os pontos principais com um exemplo prático. Termine com "Fonte:".',
+        'Área: ' + (a ? a.nome : 'Geral') + '\nTipo: ' + (it.tipo || 'Resumo') + '\nTítulo: ' + it.titulo + (it.texto ? '\n\n' + it.texto : '')) +
       '<small class="muted">' + (it.c ? new Date(it.c).toLocaleDateString('pt-BR') : '') + '</small></div>') + '</article>';
 }
 function paintRep() {
@@ -500,7 +509,8 @@ function vocItem(it) {
     (it.fonte ? '<span class="mono src">' + esc(it.fonte) + '</span>' : '') + (it.uso ? '<span class="use">' + esc(it.uso) + '</span>' : '') +
     '<div class="acts">' + (a ? '<span class="tag c">' + esc(a.nome) + '</span>' : '') +
     '<button class="say" data-act="say" data-own="0" data-say="' + esc(it.termo + '. ' + it.def) + '">Ouvir</button>' +
-    '<button class="btn sm ghost" data-act="voc-edit" data-id="' + esc(it.id) + '">Editar</button><button class="btn sm danger" data-act="del" data-kind="voc" data-id="' + esc(it.id) + '">Apagar</button></div></article>';
+    '<button class="btn sm ghost" data-act="voc-edit" data-id="' + esc(it.id) + '">Editar</button><button class="btn sm danger" data-act="del" data-kind="voc" data-id="' + esc(it.id) + '">Apagar</button>' +
+    clLink('Defina e explique o termo jurídico "' + it.termo + '". ' + DEF.slice(DEF.indexOf('em linguagem')), 'Área: ' + (a ? a.nome : 'Geral') + '\nMinha definição: ' + it.def + (it.fonte ? '\nFonte que anotei: ' + it.fonte : '')) + '</div></article>';
 }
 function paintVoc() {
   const box = $('#voc-list'); if (!box) return;
@@ -515,7 +525,8 @@ function paintVoc() {
   h += '<h2 style="margin-top:14px">Glossário base (' + GLOSS.length + ')</h2><p class="muted" style="font-size:.88rem">Termos de partida, cada um com a fonte. Guarde os que quiser para editar com as suas palavras.</p>';
   h += base.length ? base.map(x => '<article class="item"><h3>' + esc(x.g.t) + '</h3><p>' + esc(x.g.d) + '</p><span class="mono src">' + esc(x.g.f) + '</span><div class="acts">' +
     '<button class="say" data-act="say" data-say="' + esc(x.g.t + '. ' + x.g.d) + '">Ouvir</button>' +
-    (have[norm(x.g.t)] ? '<span class="tag">Já está nos seus termos</span>' : '<button class="btn sm ghost" data-act="glo-save" data-i="' + x.i + '">Guardar nos meus termos</button>') + '</div></article>').join('') : '<p class="empty">Nenhum termo do glossário com essa busca.</p>';
+    (have[norm(x.g.t)] ? '<span class="tag">Já está nos seus termos</span>' : '<button class="btn sm ghost" data-act="glo-save" data-i="' + x.i + '">Guardar nos meus termos</button>') +
+    clLink('Defina e explique o termo jurídico "' + x.g.t + '". ' + DEF.slice(DEF.indexOf('em linguagem')), 'Definição de partida: ' + x.g.d + '\nFonte: ' + x.g.f) + '</div></article>').join('') : '<p class="empty">Nenhum termo do glossário com essa busca.</p>';
   box.innerHTML = h;
 }
 function ioRow() {
@@ -737,6 +748,67 @@ function paintDrive() {
 }
 
 
+
+/* ---------- Perguntar ao Claude (só no site; o artefato tem a IA embutida) ---------- */
+const CL_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true" class="cl-ic"><path d="M8 1.2l1.1 4.1 4.2-1.6-2.8 3.4 3.9 2-4.4.3.6 4.4L8 10.3l-2.6 3.5.6-4.4-4.4-.3 3.9-2-2.8-3.4 4.2 1.6z" fill="currentColor"/></svg>';
+const CL_RULES = 'Você é professor de Direito para alunos de graduação e do Exame de Ordem (OAB/FGV). Responda em português do Brasil, em linguagem simples.\n' +
+  'Regras: cite sempre a fonte (lei, artigo e link do Planalto) para eu conferir a vigência; se não tiver certeza do número do artigo, diga que não tem certeza. ' +
+  'Não invente artigo, súmula ou julgado. É uma pergunta de estudo, não um pedido de consultoria jurídica.';
+function clUrl(task, ctx) {
+  const txt = CL_RULES + '\n\nPEDIDO: ' + task + (ctx ? '\n\nCONTEXTO (do Códex Jurídico):\n' + String(ctx).slice(0, 9000) : '');
+  return 'https://claude.ai/new?q=' + encodeURIComponent(txt);
+}
+function clLink(task, ctx, label, cls) {
+  return '<a class="btn sm ghost cl-link site-only' + (cls ? ' ' + cls : '') + '" href="' + esc(clUrl(task, ctx)) + '" target="_blank" rel="noopener">' + CL_ICON + (label || 'Perguntar ao Claude') + '</a>';
+}
+const DEF = 'Defina e explique em linguagem simples, com um exemplo prático hipotético e os pontos que mais caem em prova da faculdade e na OAB. Termine com a linha "Fonte:" trazendo lei, artigo e link.';
+function ctxDipCl(a, x) {
+  return 'Área: ' + a.nome + '.\nDiploma: ' + x.nome + ' (' + x.num + ').' + (x.url ? '\nLink oficial: ' + x.url : '') + '\nO que regula: ' + x.desc +
+    (x.est ? '\nEstrutura: ' + x.est.map(e => e[0] + ' (' + e[1] + ')').join('; ') : '');
+}
+function ctxAreaCl(a) {
+  return 'Área: ' + a.nome + ' (' + RAMOS[a.ramo].nome + ').\nNa faculdade: ' + a.fac.join('; ') + '.\nTemas centrais: ' + a.temas.join('; ') + '.' +
+    (a.dip.length ? '\nDiplomas: ' + a.dip.map(x => x.nome + ' (' + x.num + ')' + (x.url ? ' ' + x.url : '')).join('; ') : '');
+}
+/* Arquivo .md com a área inteira e o que a pessoa anotou sobre ela, para anexar no Claude */
+function areaMd(a) {
+  const L = [];
+  L.push('# Contexto de estudo: ' + a.nome, '', 'Gerado pelo Códex Jurídico em ' + new Date().toLocaleDateString('pt-BR') + '. Use este arquivo como contexto para tirar dúvidas de estudo. Confira a vigência das normas no Planalto.', '');
+  L.push('## A área', '- Ramo: ' + RAMOS[a.ramo].nome, '- Disciplinas na faculdade: ' + a.fac.join('; '), '- Temas que mais pesam: ' + a.temas.join('; '), '- Questões na 1ª fase da OAB: ' + a.oab + (OAB2.indexOf(a.id) >= 0 ? ' (também é opção na 2ª fase)' : ''));
+  if (a.nota) L.push('- Observação: ' + a.nota);
+  if (a.semLei) L.push('- Observação: ' + a.semLei);
+  if (a.dip.length) {
+    L.push('', '## Códigos e leis');
+    a.dip.forEach(x => {
+      L.push('', '### ' + x.nome + ' (' + x.num + ')', x.desc);
+      if (x.url) L.push('Link: ' + x.url);
+      if (x.est) x.est.forEach(e => L.push('- ' + e[0] + ': ' + e[1]));
+      const st = S.prog.d[dkey(x)]; if (st) L.push('Situação do meu estudo: ' + ST[st] + '.');
+    });
+  }
+  const eds = EDGES.filter(e => e.a === a.id || e.b === a.id);
+  if (eds.length) { L.push('', '## Conexões com outras áreas'); eds.forEach(e => { const o = A[e.a === a.id ? e.b : e.a]; L.push('- ' + o.nome + ': ' + e.t + ' (' + e.n + ')'); }); }
+  if (typeof PECAS !== 'undefined' && PECAS[a.id]) { L.push('', '## Peças da 2ª fase da OAB'); PECAS[a.id].lista.forEach(x => L.push('- ' + x.n + ': ' + x.q + ' Base: ' + x.b + '. Prazo: ' + x.p + '.')); }
+  const notes = S.rep.filter(it => it.area === a.id || (it.rel || []).indexOf(a.id) >= 0);
+  if (notes.length) { L.push('', '## Minhas anotações'); notes.forEach(it => { L.push('', '### ' + it.titulo + ' (' + (it.tipo || 'Resumo') + ')'); if (it.texto) L.push(it.texto); if (it.link) L.push('Link: ' + it.link); }); }
+  const terms = S.voc.filter(it => it.area === a.id);
+  if (terms.length) { L.push('', '## Meu vocabulário'); terms.forEach(it => L.push('- **' + it.termo + '**: ' + it.def + (it.fonte ? ' (' + it.fonte + ')' : ''))); }
+  return L.join('\n') + '\n';
+}
+function slugA(a) { return norm(a.nome).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+function downloadText(name, text, type) {
+  const blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+  const el = document.createElement('a'); el.href = URL.createObjectURL(blob); el.download = name;
+  document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(() => URL.revokeObjectURL(el.href), 4000);
+}
+function clAreaBox(a) {
+  return '<div class="cl-box site-only"><div><h3>' + CL_ICON + 'Estudar com o Claude</h3>' +
+    '<p class="muted">Abre o Claude na sua conta com a pergunta pronta. Para dar mais contexto, baixe o arquivo da área (leis, conexões e as suas anotações) e anexe na conversa.</p></div>' +
+    '<div class="ctrl">' + clLink('Me dê uma visão geral de ' + a.nome + ': para que serve, como se organiza e o que mais cai na faculdade e na OAB. Termine com "Fonte:".', ctxAreaCl(a), 'Perguntar sobre a área') +
+    '<button class="btn sm ghost" data-act="cl-md" data-a="' + a.id + '">Baixar contexto da área (.md)</button></div><div class="cl-after" id="cl-after"></div></div>';
+}
+
 /* ---------- Tema claro, escuro ou automático ---------- */
 const THEME_LS = 'codex-tema', HOST_THEME = document.documentElement.getAttribute('data-theme');
 const THEMES = { auto: 'Automático', light: 'Claro', dark: 'Escuro' };
@@ -801,6 +873,13 @@ main.addEventListener('click', ev => {
     case 'exp': exportCaderno(); break;
     case 'drv-on': case 'drv-sync': drvSync(true); break;
     case 'drv-off': drvOff(); break;
+    case 'cl-md': {
+      const a = A[d.a]; downloadText('codex-' + slugA(a) + '.md', areaMd(a), 'text/markdown;charset=utf-8');
+      const box = $('#cl-after');
+      if (box) box.innerHTML = '<p class="note">Arquivo baixado. Abra o Claude, anexe o arquivo <b>codex-' + esc(slugA(a)) + '.md</b> pelo clipe e escreva a sua dúvida.</p><div class="ctrl">' +
+        clLink('Anexei um arquivo do Códex Jurídico com o conteúdo de ' + a.nome + ' e as minhas anotações. Use-o como contexto. Minha dúvida é: ', '', 'Abrir o Claude para anexar') + '</div>';
+      toast('Contexto de ' + a.nome + ' baixado.'); break;
+    }
     case 'govoc': ui.cad = 'voc'; ui.vocQ = ''; go('caderno'); break;
     case 'st': {
       const n = ((S.prog.d[d.k] || 0) + 1) % 3;
@@ -1130,7 +1209,8 @@ function tIA() {
 function aiAct(b) {
   const d = b.dataset, act = d.act;
   switch (act) {
-    case 'ai-tema': { const a = A[d.a], slot = $('#ai-area-out'); if (a && slot) { explain(a, null, d.t, slot); slot.scrollIntoView({ block: 'nearest' }); } return true; }
+    case 'ai-tema': if (!AI.fn) { if (document.body.classList.contains('site')) { const a = A[d.a]; window.open(clUrl('Explique o tema "' + d.t + '" em ' + a.nome + '. ' + DEF.slice(DEF.indexOf('em linguagem')), ctxAreaCl(a)), '_blank', 'noopener'); } return true; }
+    { const a = A[d.a], slot = $('#ai-area-out'); if (a && slot) { explain(a, null, d.t, slot); slot.scrollIntoView({ block: 'nearest' }); } return true; }
     case 'ai-dip': { const slot = $('#ai-d-' + d.i); if (slot) { if (slot.firstChild) slot.innerHTML = ''; else slot.innerHTML = expForm('ai-q-d' + d.i, 'Artigo ou instituto deste diploma (em branco: visão geral)', d.a, d.i); } return true; }
     case 'ai-exp': { const f = b.closest('.aiform'), a = A[d.a]; explain(a, d.i == null ? null : a.dip[+d.i], f.querySelector('input').value.trim().slice(0, 200), f.querySelector('.ai-res')); return true; }
     case 'ai-quiz': quiz(A[d.a], $('#ai-quiz-out')); return true;

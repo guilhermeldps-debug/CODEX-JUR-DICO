@@ -339,7 +339,7 @@ form.box{background:var(--sheet);border:1px solid var(--line);border-radius:var(
 body:not(.has-ai) .ai-only{display:none!important}
 body:not(.site) .site-only{display:none!important}
 button.tag{font:inherit;font-size:.78rem;cursor:pointer}
-body:not(.has-ai) button.tag{pointer-events:none;cursor:default}
+body:not(.has-ai):not(.site) button.tag{pointer-events:none;cursor:default}
 .ainote{position:fixed;left:0;right:0;bottom:0;z-index:19;background:var(--paper);border-top:1px solid var(--line);font-size:.66rem;line-height:1.3;color:var(--ink-2);padding:4px 12px;text-align:center}
 .ainote b{font-family:var(--f-mono);color:var(--rubi);font-weight:600;white-space:nowrap}
 body.has-ai main{padding-bottom:calc(var(--dock,60px) + 76px)}
@@ -481,6 +481,15 @@ form.box{border-radius:20px;padding:22px;gap:16px}
 @media (prefers-reduced-motion: no-preference){ .card{transition:transform .15s, box-shadow .15s, border-color .15s} }
 .brand{white-space:nowrap}
 @media (max-width:420px){ .top{gap:6px;padding-left:max(12px, env(safe-area-inset-left));padding-right:max(12px, env(safe-area-inset-right))} .top-r{gap:5px} .brand{font-size:.98rem;gap:6px} .theme-btn{padding:4px} .top .chip{padding:5px 9px;font-size:.7rem;gap:5px} #save-txt{max-width:160px} }
+/* Perguntar ao Claude */
+.cl-link{gap:6px}
+.cl-ic{width:14px;height:14px;color:#D97757;flex:0 0 auto}
+.cl-box{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);background:var(--sheet);border-radius:18px;padding:18px 20px;max-width:860px}
+.cl-box h3{display:flex;align-items:center;gap:8px}
+.cl-box h3 .cl-ic{width:18px;height:18px}
+.cl-box > div > p{font-size:.92rem;margin-top:4px}
+.cl-after:empty{display:none}
+.cl-after{display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
 <body>
