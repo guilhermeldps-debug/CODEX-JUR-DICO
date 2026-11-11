@@ -2,7 +2,7 @@
 
 Plataforma de estudos de Direito para a faculdade e o Exame de Ordem.
 
-**Acesse:** https://guilhermeldps-debug.github.io/codex-juridico/
+**Acesse:** https://guilhermeldps-debug.github.io/CODEX-JUR-DICO/
 
 ## O que tem
 
