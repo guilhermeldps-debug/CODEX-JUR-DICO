@@ -71,7 +71,7 @@ button{cursor:pointer}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:0 4px env(safe-area-inset-bottom)}
 .nav a{flex:1;text-align:center;text-decoration:none;font-size:.74rem;font-weight:500;color:var(--ink-2);padding:13px 2px 12px;border-top:3px solid transparent;margin-top:-1px}
 .nav a.on{color:var(--ink);border-top-color:var(--rubi);font-weight:600}
-main{max-width:1080px;margin:0 auto;padding:0 16px 96px;display:flex;flex-direction:column;gap:28px}
+main{--gut:16px;max-width:1560px;margin:0 auto;padding:0 var(--gut) 96px;display:flex;flex-direction:column;gap:28px}
 @media (min-width:860px){
   .nav{position:sticky;top:49px;bottom:auto;border-top:0;border-bottom:1px solid var(--line);justify-content:center;gap:8px;background:var(--paper)}
   .nav a{flex:0 0 auto;font-size:.9rem;padding:10px 16px 9px;border-top:0;border-bottom:3px solid transparent;margin:0 0 -1px}
@@ -80,7 +80,7 @@ main{max-width:1080px;margin:0 auto;padding:0 16px 96px;display:flex;flex-direct
 }
 
 /* Herói: folha pautada com margem rubi */
-.hero{margin:0 -16px;padding:30px 16px 26px 34px;position:relative;display:flex;flex-direction:column;gap:14px;
+.hero{margin:0 calc(-1 * var(--gut));padding:30px var(--gut) 26px calc(var(--gut) + 18px);position:relative;display:flex;flex-direction:column;gap:14px;
   background:repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);border-bottom:1px solid var(--line)}
 .hero::before{content:"";position:absolute;top:0;bottom:0;left:20px;width:2px;background:var(--rubi);opacity:.7}
 .eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--rubi);font-weight:600}
@@ -110,6 +110,7 @@ main{max-width:1080px;margin:0 auto;padding:0 16px 96px;display:flex;flex-direct
 .grid{display:grid;grid-template-columns:1fr;gap:10px}
 @media (min-width:620px){.grid{grid-template-columns:1fr 1fr}}
 @media (min-width:980px){.grid{grid-template-columns:1fr 1fr 1fr}}
+@media (min-width:1360px){.grid{grid-template-columns:repeat(4,1fr)}}
 
 /* Cartão de área com dedeira */
 .card{display:grid;grid-template-columns:58px 1fr;background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;min-height:76px}
@@ -166,6 +167,7 @@ details.est summary{cursor:pointer;color:var(--ink-2);font-size:.84rem}
 /* Mapa */
 .gwrap{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
 @media (min-width:860px){.gwrap{grid-template-columns:minmax(0,520px) 1fr}}
+@media (min-width:1200px){.gwrap{grid-template-columns:minmax(0,640px) 1fr}}
 #graph{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:6px}
 #graph svg{display:block;width:100%;height:auto}
 .e{stroke:var(--ink-2);stroke-width:.7;opacity:.22}
@@ -269,8 +271,29 @@ form.box{background:var(--sheet);border:1px solid var(--line);border-radius:var(
 .toast[hidden]{display:none}
 
 
+
+/* Computador: mais largura e duas colunas onde cabe */
+@media (min-width:1100px){
+  main{--gut:40px}
+  .cad-grid{display:grid;grid-template-columns:minmax(380px,460px) minmax(0,1fr);gap:28px;align-items:start}
+  .cad-grid > .cad-side{position:sticky;top:112px;max-height:calc(100vh - 128px);overflow:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
+  .mn{grid-template-columns:repeat(3,1fr)}
+  .links{grid-template-columns:repeat(3,1fr)}
+  .vh p, .lead{max-width:78ch}
+}
+@media (min-width:1360px){ main{--gut:56px} .tiles b{font-size:2.4rem} }
+@media (min-width:1600px){ main{max-width:1760px} .cad-grid{grid-template-columns:minmax(420px,520px) minmax(0,1fr)} }
+.cad-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.cad-main{min-width:0;display:flex;flex-direction:column;gap:12px}
+/* Botão de tema */
+.top-r{display:flex;align-items:center;gap:8px}
+.theme-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:99px;padding:4px 10px 4px 8px;font-size:.74rem;font-weight:500}
+.theme-btn svg{width:16px;height:16px;flex:0 0 auto}
+.theme-btn:hover{border-color:var(--ink-2)}
+@media (max-width:480px){ .theme-btn span{display:none} .theme-btn{padding:5px} #save-txt{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} }
+
 /* Google Drive */
-.drive{background:var(--sheet);border:1px solid var(--line);border-left:4px solid var(--c-pub);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px;max-width:640px}
+.drive{background:var(--sheet);border:1px solid var(--line);border-left:4px solid var(--c-pub);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px;max-width:760px}
 .drv-h{display:flex;align-items:center;gap:8px}
 .drv-h h3{flex:1}
 .drv-ic{width:20px;height:18px;flex:0 0 auto;background:conic-gradient(from 210deg,#0F9D58 0 120deg,#F4B400 0 240deg,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%)}
@@ -366,7 +389,8 @@ body.has-ai main{padding-bottom:calc(var(--dock,60px) + 76px)}
 <body>
 <header class="top">
   <a class="brand" href="#areas"><b>§</b>Códex Jurídico</a>
-  <span class="chip" id="save-chip"><i></i><span id="save-txt">Salvo neste aparelho</span></span>
+  <div class="top-r"><button class="theme-btn" id="theme-btn" type="button" aria-label="Tema: automático"></button>
+  <span class="chip" id="save-chip"><i></i><span id="save-txt">Salvo neste aparelho</span></span></div>
 </header>
 <nav class="nav" id="nav" aria-label="Seções">
   <a href="#areas" data-v="areas">Áreas</a>
@@ -390,7 +414,7 @@ body.has-ai main{padding-bottom:calc(var(--dock,60px) + 76px)}
 <script src="pecas.js"></script>
 <script src="app.js"></script>
 <script>
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+if (!window.claude && location.protocol === 'https:' && (function () { try { return 'serviceWorker' in navigator; } catch (e) { return false; } })()) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
 </script>

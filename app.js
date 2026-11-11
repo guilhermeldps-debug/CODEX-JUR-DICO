@@ -538,16 +538,16 @@ function vCaderno() {
     (DRV.id ? '<section class="drive site-only" id="drive-box">' + driveHtml() + '</section>' : '') +
     '<div class="seg" role="group" aria-label="Parte do caderno" style="align-self:flex-start"><button data-act="cad" data-v="rep" class="' + (ui.cad === 'rep' ? 'on' : '') + '">Repertório</button><button data-act="cad" data-v="voc" class="' + (ui.cad === 'voc' ? 'on' : '') + '">Vocabulário</button></div></header>';
   if (ui.cad === 'rep') {
-    return head + repForm() + ioRow() +
+    return head + '<div class="cad-grid"><div class="cad-side">' + repForm() + ioRow() + '</div><div class="cad-main">' +
       '<section class="sec"><div class="bar"><h2>Repertório</h2><span class="muted" id="rep-n" style="font-size:.86rem"></span></div>' +
       '<div class="ctrl"><input id="rep-q" type="search" placeholder="Buscar nas anotações" aria-label="Buscar nas anotações" value="' + esc(ui.repQ) + '" style="flex:1 1 180px;padding:10px 11px;border:1px solid var(--ink-2);border-radius:var(--r);background:var(--sheet)">' +
       '<select id="rep-farea" aria-label="Filtrar por área">' + areaOpts(ui.repArea, 'Todas as áreas') + '</select>' +
       '<select id="rep-ftipo" aria-label="Filtrar por tipo">' + opt('', 'Todos os tipos', ui.repTipo) + TIPOS.map(t => opt(t, t, ui.repTipo)).join('') + '</select></div>' +
-      '<div class="list" id="rep-list"></div></section>';
+      '<div class="list" id="rep-list"></div></section></div></div>';
   }
-  return head + vocForm() + ioRow() +
+  return head + '<div class="cad-grid"><div class="cad-side">' + vocForm() + ioRow() + '</div><div class="cad-main">' +
     '<section class="sec"><div class="ctrl"><input id="voc-q" type="search" placeholder="Buscar um termo" aria-label="Buscar um termo" value="' + esc(ui.vocQ) + '" style="flex:1 1 180px;padding:10px 11px;border:1px solid var(--ink-2);border-radius:var(--r);background:var(--sheet)"></div>' +
-    '<div class="list" id="voc-list"></div></section>';
+    '<div class="list" id="voc-list"></div></section></div></div>';
 }
 
 /* ---------- importação por arquivo ---------- */
@@ -586,7 +586,7 @@ async function importFile(file) {
 
 
 /* ---------- Google Drive: cópia do caderno e do progresso no Drive de cada pessoa ---------- */
-const DRV = { id: String((window.CODEX_CONFIG || {}).googleClientId || '').trim(), client: null, token: null, exp: 0, fileId: null,
+const DRV = { id: window.claude ? '' : String((window.CODEX_CONFIG || {}).googleClientId || '').trim(), client: null, token: null, exp: 0, fileId: null,
   on: false, busy: false, dirty: false, last: 0, timer: null, err: '' };
 const DRV_LS = 'codex-drive-v1', DRV_SCOPE = 'https://www.googleapis.com/auth/drive.appdata', DRV_FILE = 'codex-caderno.json';
 const DRV_API = 'https://www.googleapis.com/drive/v3/files', DRV_UP = 'https://www.googleapis.com/upload/drive/v3/files';
@@ -735,6 +735,34 @@ function paintDrive() {
     txt.textContent = DRV.busy ? 'Sincronizando' : DRV.dirty ? 'Falta enviar ao Drive' : 'Salvo no Google Drive';
   } else if (!S.cloud) setMode('local');
 }
+
+
+/* ---------- Tema claro, escuro ou automático ---------- */
+const THEME_LS = 'codex-tema', HOST_THEME = document.documentElement.getAttribute('data-theme');
+const THEMES = { auto: 'Automático', light: 'Claro', dark: 'Escuro' };
+const ICONS = {
+  auto: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="currentColor"/></svg>',
+  light: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"/></g></svg>',
+  dark: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 10.2A6 6 0 0 1 5.8 2.4a6 6 0 1 0 7.8 7.8z" fill="currentColor"/></svg>'
+};
+let theme = 'auto';
+try { theme = localStorage.getItem(THEME_LS) || 'auto'; } catch (e) { /* sem armazenamento */ }
+if (!THEMES[theme]) theme = 'auto';
+function applyTheme() {
+  const root = document.documentElement;
+  if (theme === 'auto') { if (HOST_THEME) root.setAttribute('data-theme', HOST_THEME); else root.removeAttribute('data-theme'); }
+  else root.setAttribute('data-theme', theme);
+  const dark = theme === 'dark' || (theme === 'auto' && (HOST_THEME ? HOST_THEME === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches));
+  Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), m => m.setAttribute('content', dark ? '#10151C' : '#F2F4F1'));
+  const b = $('#theme-btn');
+  if (b) { b.innerHTML = ICONS[theme] + '<span>' + THEMES[theme] + '</span>'; b.setAttribute('aria-label', 'Tema: ' + THEMES[theme] + '. Toque para mudar.'); b.title = 'Tema: ' + THEMES[theme]; }
+}
+$('#theme-btn').addEventListener('click', () => {
+  theme = theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto';
+  try { localStorage.setItem(THEME_LS, theme); } catch (e) { /* sem armazenamento */ }
+  applyTheme(); toast('Tema: ' + THEMES[theme].toLowerCase() + '.');
+});
+applyTheme();
 
 /* ---------- roteamento ---------- */
 function cur() {
