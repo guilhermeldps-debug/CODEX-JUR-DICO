@@ -1,6 +1,6 @@
 /* Códex Jurídico: funciona offline depois da primeira visita. */
-const CACHE = 'codex-v1';
-const FILES = ['./', 'index.html', 'app.js', 'data.js', 'pecas.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/favicon-32.png'];
+const CACHE = 'codex-v2';
+const FILES = ['./', 'index.html', 'config.js', 'app.js', 'data.js', 'pecas.js', 'privacidade.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/favicon-32.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

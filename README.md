@@ -17,6 +17,11 @@ Plataforma de estudos de Direito para a faculdade e o Exame de Ordem.
 - Funciona no navegador do celular e do computador.
 - No celular, use "Adicionar à tela inicial" para abrir como aplicativo. Depois da primeira visita, funciona sem internet.
 - O caderno fica salvo no navegador do aparelho. Use **Exportar caderno** para fazer backup ou levar para outro aparelho.
+- Com o **Google Drive** conectado (Caderno, botão "Conectar Google Drive"), o caderno e o progresso ficam guardados no Drive da própria pessoa e sincronizam entre aparelhos. Veja a [política de privacidade](privacidade.html).
+
+## Configurar o Google Drive
+
+O botão do Drive só aparece depois que o ID do cliente OAuth do Google é colocado em `config.js` (`googleClientId`). O ID é público e pode ficar no repositório; não há chave secreta. O acesso usa só a permissão `drive.appdata`, uma pasta oculta reservada ao aplicativo no Drive de cada pessoa.
 
 ## Aviso
 

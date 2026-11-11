@@ -18,7 +18,7 @@ const TOTAL_DIP = AREAS.reduce((n, a) => n + a.dip.length, 0);
 const main = $('#main');
 
 /* ---------- estado ---------- */
-const S = { rep: [], voc: [], prog: { d: {}, c: {}, o: null }, cloud: false, db: null, uid: null };
+const S = { rep: [], voc: [], prog: { d: {}, c: {}, o: null }, del: {}, cloud: false, db: null, uid: null };
 const ui = { sort: 'ramo', node: 'civ', edge: -1, tool: 'graficas', pyr: 0, fcArea: 'todas', fcI: 0, fcFlip: false,
   tl: 'cpc', tlI: -1, tlPlay: false, tlTok: 0, cad: 'rep', repEdit: null, vocEdit: null, repQ: '', repArea: '', repTipo: '', vocQ: '', pre: null, pa: 'civ', pOpen: -1, fix: null };
 
@@ -26,11 +26,11 @@ const ui = { sort: 'ramo', node: 'civ', edge: -1, tool: 'graficas', pyr: 0, fcAr
 const LS = 'codex-juridico-v1';
 function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; } }
 function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); } catch (e) { /* sem armazenamento local */ } }
-function persistLocal() { if (!S.cloud) lsSet({ rep: S.rep, voc: S.voc, prog: S.prog }); }
-function cleanProg(p) { p = p || {}; return { d: p.d || {}, c: p.c || {}, o: Array.isArray(p.o) ? p.o : null }; }
+function persistLocal() { if (!S.cloud) { lsSet({ rep: S.rep, voc: S.voc, prog: S.prog, del: S.del }); if (typeof driveDirty === 'function') driveDirty(); } }
+function cleanProg(p) { p = p || {}; return { d: p.d || {}, c: p.c || {}, o: Array.isArray(p.o) ? p.o : null, t: +p.t || 0 }; }
 
 const local = lsGet();
-if (local) { S.rep = local.rep || []; S.voc = local.voc || []; S.prog = cleanProg(local.prog); }
+if (local) { S.rep = local.rep || []; S.voc = local.voc || []; S.prog = cleanProg(local.prog); S.del = local.del && typeof local.del === 'object' ? local.del : {}; }
 const pend = { rep: S.rep.slice(), voc: S.voc.slice(), prog: local ? cleanProg(local.prog) : null };
 
 let cols = null, progDoc = null, progTimer = null, progChain = Promise.resolve();
@@ -64,15 +64,18 @@ function writeItem(kind, item) {
   return cols[kind].doc(item.id).set(body).catch(fail);
 }
 function saveItem(kind, item) {
+  item.u = Date.now();
   const list = S[kind], i = list.findIndex(x => x.id === item.id);
   if (i >= 0) list[i] = item; else list.push(item);
   if (S.cloud) writeItem(kind, item); else persistLocal();
 }
 function removeItem(kind, id) {
   S[kind] = S[kind].filter(x => x.id !== id);
+  S.del[id] = Date.now();
   if (S.cloud) cols[kind].doc(id).delete().catch(fail); else persistLocal();
 }
 function saveProg() {
+  S.prog.t = Date.now();
   if (!S.cloud) { persistLocal(); return; }
   clearTimeout(progTimer);
   progTimer = setTimeout(() => {
@@ -519,7 +522,7 @@ function ioRow() {
   return '<div class="ctrl"><label class="btn sm ghost" for="imp-file">Importar arquivo</label><input type="file" id="imp-file" accept=".json,application/json" hidden>' +
     '<button class="btn sm ghost site-only" data-act="exp">Exportar caderno</button>' +
     '<span class="muted" style="font-size:.8rem">Arquivo .json com anotações e termos.</span></div>' +
-    '<p class="note site-only">Seu caderno fica salvo só neste navegador. Para não perder nada ou usar em outro aparelho, exporte o arquivo e importe no outro.</p>';
+    (DRV.id ? '' : '<p class="note site-only">Seu caderno fica salvo só neste navegador. Para não perder nada ou usar em outro aparelho, exporte o arquivo e importe no outro.</p>');
 }
 function exportCaderno() {
   const d = new Date(), p = n => (n < 10 ? '0' : '') + n;
@@ -532,6 +535,7 @@ function exportCaderno() {
 }
 function vCaderno() {
   const head = '<header class="vh"><h1>Meu caderno</h1><p>Seu repertório de estudos e o seu vocabulário jurídico. Só você vê o que guarda aqui.</p>' +
+    (DRV.id ? '<section class="drive site-only" id="drive-box">' + driveHtml() + '</section>' : '') +
     '<div class="seg" role="group" aria-label="Parte do caderno" style="align-self:flex-start"><button data-act="cad" data-v="rep" class="' + (ui.cad === 'rep' ? 'on' : '') + '">Repertório</button><button data-act="cad" data-v="voc" class="' + (ui.cad === 'voc' ? 'on' : '') + '">Vocabulário</button></div></header>';
   if (ui.cad === 'rep') {
     return head + repForm() + ioRow() +
@@ -580,6 +584,158 @@ async function importFile(file) {
   if (ok) toast(ok < total ? 'Importação incompleta: só ' + ok + ' de ' + total + ' itens foram gravados.' : 'Importação concluída: ' + (rep.length ? rep.length + ' anotações' : '') + (rep.length && voc.length ? ' e ' : '') + (voc.length ? voc.length + ' termos' : '') + '.');
 }
 
+
+/* ---------- Google Drive: cópia do caderno e do progresso no Drive de cada pessoa ---------- */
+const DRV = { id: String((window.CODEX_CONFIG || {}).googleClientId || '').trim(), client: null, token: null, exp: 0, fileId: null,
+  on: false, busy: false, dirty: false, last: 0, timer: null, err: '' };
+const DRV_LS = 'codex-drive-v1', DRV_SCOPE = 'https://www.googleapis.com/auth/drive.appdata', DRV_FILE = 'codex-caderno.json';
+const DRV_API = 'https://www.googleapis.com/drive/v3/files', DRV_UP = 'https://www.googleapis.com/upload/drive/v3/files';
+(function () { try { const s = JSON.parse(localStorage.getItem(DRV_LS) || 'null'); if (s && s.on) { DRV.on = true; DRV.fileId = s.fileId || null; DRV.last = +s.last || 0; DRV.dirty = !!s.dirty; } } catch (e) { /* sem armazenamento */ } })();
+function drvSave() { try { localStorage.setItem(DRV_LS, JSON.stringify({ on: DRV.on, fileId: DRV.fileId, last: DRV.last, dirty: DRV.dirty })); } catch (e) { /* nada */ } }
+function drvOk() { return !!(DRV.token && Date.now() < DRV.exp - 60000); }
+function loadGis() {
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if (loadGis.p) return loadGis.p;
+  loadGis.p = new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = () => res(); sc.onerror = () => { loadGis.p = null; rej({ code: 'net' }); };
+    document.head.appendChild(sc);
+  });
+  return loadGis.p;
+}
+/* Só pede o login do Google a partir de um toque da pessoa; nas gravações automáticas usa o acesso que já existe. */
+async function drvToken(interactive) {
+  if (drvOk()) return DRV.token;
+  if (!interactive) throw { code: 'auth' };
+  await loadGis();
+  return new Promise((res, rej) => {
+    DRV.client = google.accounts.oauth2.initTokenClient({
+      client_id: DRV.id, scope: DRV_SCOPE,
+      callback: r => {
+        if (!r || r.error || !google.accounts.oauth2.hasGrantedAllScopes(r, DRV_SCOPE)) { rej({ code: r && r.error === 'access_denied' ? 'denied' : 'auth' }); return; }
+        DRV.token = r.access_token; DRV.exp = Date.now() + (+r.expires_in || 3600) * 1000; res(DRV.token);
+      },
+      error_callback: e => rej({ code: e && e.type === 'popup_closed' ? 'closed' : 'popup' })
+    });
+    DRV.client.requestAccessToken({ prompt: DRV.on ? '' : 'consent' });
+  });
+}
+async function drvFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ Authorization: 'Bearer ' + DRV.token }, opts.headers || {});
+  let r;
+  try { r = await fetch(url, opts); } catch (e) { throw { code: 'net' }; }
+  if (r.status === 401) { DRV.token = null; throw { code: 'auth' }; }
+  if (r.status === 404) throw { code: 'missing' };
+  if (r.status === 403 || r.status === 429) throw { code: 'quota' };
+  if (!r.ok) throw { code: 'http' };
+  return r;
+}
+async function drvFind() {
+  const q = encodeURIComponent("name='" + DRV_FILE + "' and trashed=false");
+  const r = await drvFetch(DRV_API + '?spaces=appDataFolder&q=' + q + '&fields=files(id,modifiedTime)&orderBy=modifiedTime%20desc&pageSize=1');
+  const j = await r.json();
+  return j.files && j.files[0] ? j.files[0].id : null;
+}
+function drvSnapshot() { return { codex: 1, v: 2, salvo: new Date().toISOString(), rep: S.rep, voc: S.voc, del: S.del, prog: S.prog }; }
+async function drvUpload(data) {
+  const body = JSON.stringify(data);
+  if (DRV.fileId) {
+    try { await drvFetch(DRV_UP + '/' + DRV.fileId + '?uploadType=media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body }); return; }
+    catch (e) { if (e.code !== 'missing') throw e; DRV.fileId = null; }
+  }
+  const b = 'codex' + Math.random().toString(36).slice(2);
+  const multi = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: DRV_FILE, parents: ['appDataFolder'], mimeType: 'application/json' }) +
+    '\r\n--' + b + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + b + '--';
+  const r = await drvFetch(DRV_UP + '?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: multi });
+  DRV.fileId = (await r.json()).id;
+}
+const stamp = x => +(x && (x.u || x.c)) || 0;
+/* Junta o que está no aparelho com o que está no Drive: em cada item vale a versão mais recente; o que foi apagado em qualquer lado some nos dois. */
+function drvMerge(remote) {
+  if (!remote || typeof remote !== 'object') return;
+  const del = Object.assign({}, S.del);
+  Object.keys(remote.del || {}).forEach(k => { del[k] = Math.max(+del[k] || 0, +remote.del[k] || 0); });
+  ['rep', 'voc'].forEach(kind => {
+    const map = {};
+    S[kind].forEach(x => { map[x.id] = x; });
+    (Array.isArray(remote[kind]) ? remote[kind] : []).forEach(x => { if (x && x.id && (!map[x.id] || stamp(x) > stamp(map[x.id]))) map[x.id] = x; });
+    S[kind] = Object.keys(map).map(k => map[k]).filter(x => !(del[x.id] && del[x.id] >= stamp(x)));
+  });
+  const cut = Date.now() - 180 * 864e5;
+  Object.keys(del).forEach(k => { if (del[k] < cut) delete del[k]; });
+  S.del = del;
+  if (remote.prog && (+remote.prog.t || 0) > (+S.prog.t || 0)) S.prog = cleanProg(remote.prog);
+}
+async function drvSync(interactive) {
+  if (!DRV.id || DRV.busy) return;
+  DRV.busy = true; DRV.err = ''; paintDrive();
+  try {
+    await drvToken(interactive);
+    const first = !DRV.on;
+    if (!DRV.fileId) DRV.fileId = await drvFind();
+    if (DRV.fileId) {
+      try { const r = await drvFetch(DRV_API + '/' + DRV.fileId + '?alt=media'); drvMerge(await r.json()); }
+      catch (e) { if (e.code === 'missing') DRV.fileId = null; else throw e; }
+    }
+    await drvUpload(drvSnapshot());
+    DRV.on = true; DRV.dirty = false; DRV.last = Date.now();
+    lsSet({ rep: S.rep, voc: S.voc, prog: S.prog, del: S.del });
+    drvSave();
+    if (interactive) { const v = cur(); if (v === 'caderno') { paintRep(); paintVoc(); } else render(true); }
+    else { paintRep(); paintVoc(); refresh('prog'); }
+    if (first) toast('Caderno conectado ao Google Drive.');
+  } catch (e) {
+    const c = e && e.code;
+    DRV.err = c === 'closed' || c === 'denied' ? 'Conexão cancelada. Toque de novo quando quiser.' :
+      c === 'popup' ? 'O navegador bloqueou a janela do Google. Permita pop-ups para este site e tente de novo.' :
+      c === 'auth' ? 'O acesso ao Drive expirou. Toque em Sincronizar agora para entrar de novo.' :
+      c === 'quota' ? 'O Google recusou a gravação agora. Tente de novo em alguns minutos.' :
+      'Sem conexão com o Google Drive. Suas alterações ficam neste aparelho até você sincronizar.';
+    if (interactive && c !== 'auth') toast(DRV.err);
+  } finally {
+    DRV.busy = false; drvSave(); paintDrive();
+  }
+}
+function driveDirty() {
+  if (!DRV.on) return;
+  DRV.dirty = true; drvSave(); paintDrive();
+  clearTimeout(DRV.timer);
+  if (drvOk()) DRV.timer = setTimeout(() => drvSync(false), 3000);
+}
+function drvOff() {
+  try { if (DRV.token && window.google && google.accounts) google.accounts.oauth2.revoke(DRV.token, () => {}); } catch (e) { /* nada */ }
+  DRV.on = false; DRV.token = null; DRV.exp = 0; DRV.fileId = null; DRV.dirty = false; DRV.last = 0; DRV.err = '';
+  try { localStorage.removeItem(DRV_LS); } catch (e) { /* nada */ }
+  paintDrive(); toast('Drive desconectado. Seu caderno continua neste aparelho e a cópia no Drive foi mantida.');
+}
+function hhmm(t) { const d = new Date(t); return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function driveHtml() {
+  if (!DRV.id) return '';
+  let st, btns;
+  if (DRV.busy) { st = 'Sincronizando com o Google Drive…'; btns = ''; }
+  else if (!DRV.on) {
+    st = 'Guarde o seu caderno e o seu progresso no seu Google Drive e continue de onde parou em qualquer aparelho.';
+    btns = '<button class="btn rubi" data-act="drv-on">Conectar Google Drive</button>';
+  } else {
+    st = DRV.dirty ? 'Há alterações neste aparelho que ainda não foram para o Drive.' : DRV.last ? 'Última sincronização: ' + hhmm(DRV.last) + '.' : 'Conectado.';
+    if (!drvOk() && !DRV.dirty) st += ' Toque em Sincronizar agora para trazer o que você fez em outros aparelhos.';
+    btns = '<button class="btn rubi" data-act="drv-sync">Sincronizar agora</button><button class="btn ghost" data-act="drv-off">Desconectar</button>';
+  }
+  return '<div class="drv-h"><span class="drv-ic" aria-hidden="true"></span><h3>Google Drive</h3><span class="chip ' + (DRV.on ? (DRV.dirty ? 'warn' : 'ok') : '') + '"><i></i>' +
+    (DRV.on ? (DRV.dirty ? 'Pendente' : 'Conectado') : 'Desconectado') + '</span></div><p>' + esc(st) + '</p>' +
+    (DRV.err ? '<p class="drv-err">' + esc(DRV.err) + '</p>' : '') + (btns ? '<div class="ctrl">' + btns + '</div>' : '') +
+    '<p class="muted" style="font-size:.78rem">O Códex só acessa uma pasta oculta, criada para ele no seu Drive. Seus outros arquivos ficam fora do alcance. <a href="privacidade.html">Privacidade</a></p>';
+}
+function paintDrive() {
+  const b = $('#drive-box'); if (b) b.innerHTML = driveHtml();
+  if (DRV.on && S.cloud === false) {
+    const chip = $('#save-chip'), txt = $('#save-txt');
+    chip.className = 'chip ' + (DRV.busy ? '' : DRV.dirty ? 'warn' : 'ok');
+    txt.textContent = DRV.busy ? 'Sincronizando' : DRV.dirty ? 'Falta enviar ao Drive' : 'Salvo no Google Drive';
+  } else if (!S.cloud) setMode('local');
+}
+
 /* ---------- roteamento ---------- */
 function cur() {
   const h = location.hash.slice(1);
@@ -615,6 +771,8 @@ main.addEventListener('click', ev => {
     case 'sort': ui.sort = d.v; render(true); break;
     case 'goterm': ui.cad = 'voc'; ui.vocQ = d.t; break;
     case 'exp': exportCaderno(); break;
+    case 'drv-on': case 'drv-sync': drvSync(true); break;
+    case 'drv-off': drvOff(); break;
     case 'govoc': ui.cad = 'voc'; ui.vocQ = ''; go('caderno'); break;
     case 'st': {
       const n = ((S.prog.d[d.k] || 0) + 1) % 3;
@@ -1065,6 +1223,7 @@ $('#chat-in').addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.
 if (!window.claude) document.body.classList.add('site');
 setMode('local');
 render();
+paintDrive();
 connect();
 initVoice();
 initAI();

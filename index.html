@@ -268,6 +268,14 @@ form.box{background:var(--sheet);border:1px solid var(--line);border-radius:var(
 .toast{position:fixed;left:16px;right:16px;bottom:70px;z-index:40;background:var(--ink);color:var(--paper);padding:11px 14px;border-radius:var(--r);font-size:.9rem;max-width:520px;margin:0 auto}
 .toast[hidden]{display:none}
 
+
+/* Google Drive */
+.drive{background:var(--sheet);border:1px solid var(--line);border-left:4px solid var(--c-pub);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px;max-width:640px}
+.drv-h{display:flex;align-items:center;gap:8px}
+.drv-h h3{flex:1}
+.drv-ic{width:20px;height:18px;flex:0 0 auto;background:conic-gradient(from 210deg,#0F9D58 0 120deg,#F4B400 0 240deg,#4285F4 0);clip-path:polygon(50% 0,100% 85%,0 85%)}
+.drv-err{font-size:.86rem;color:var(--warn)}
+
 /* Peças */
 .pa-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pa{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:6px 12px;font-size:.84rem;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
@@ -377,6 +385,7 @@ body.has-ai main{padding-bottom:calc(var(--dock,60px) + 76px)}
   <form id="chat-form"><textarea id="chat-in" rows="2" maxlength="2000" placeholder="Sua dúvida de estudo" aria-label="Sua dúvida"></textarea><button class="btn rubi" type="submit">Enviar</button></form>
   <p class="chat-note">IA para estudo — pode errar. Confira a lei no Planalto. Não é consultoria jurídica.</p>
 </section>
+<script src="config.js"></script>
 <script src="data.js"></script>
 <script src="pecas.js"></script>
 <script src="app.js"></script>
